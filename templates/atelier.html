@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Météo - Design Avancé</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0b1120;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-1: #06b6d4;
+            --accent-2: #10b981;
+            --accent-3: #8b5cf6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Red Hat Display', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 30px;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(to right, var(--accent-1), var(--accent-3));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .chart-card {
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .chart-header {
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 15px;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .chart-location {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        .canvas-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .loader {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Observatoire Météorologique</h1>
+        <p class="subtitle">Analyse multi-paramètres en temps réel</p>
+    </header>
+
+    <div class="dashboard-grid">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h2 class="chart-title">Vitesse du Vent à Marseille</h2>
+                <div class="chart-location">📍 Marseille, France</div>
+            </div>
+            <div class="canvas-container">
+                <div id="loader1" class="loader">Chargement...</div>
+                <canvas id="chartWind"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.font.family = "'Red Hat Display', sans-serif";
+        Chart.defaults.scale.grid.color = 'rgba(255, 255, 255, 0.05)';
+        Chart.defaults.elements.point.radius = 0;
+        Chart.defaults.elements.point.hitRadius = 10;
+        Chart.defaults.elements.line.tension = 0.4;
+
+        function formatDates(isoArray) {
+            return isoArray.map(isoString => {
+                const date = new Date(isoString);
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                return `${day}/${month} ${hours}:00`;
+            });
+        }
+
+        async function loadWindChart() {
+            try {
+                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=43.297&longitude=5.3811&hourly=wind_speed_10m&past_days=7');
+                const data = await res.json();
+
+                document.getElementById('loader1').style.display = 'none';
+                const ctx = document.getElementById('chartWind').getContext('2d');
+
+                new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: formatDates(data.hourly.time),
+                        datasets: [{
+                            label: 'Vitesse du Vent (km/h)',
+                            data: data.hourly.wind_speed_10m,
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+                        scales: {
+                            r: {
+                                angleLines: {
+                                    display: true
+                                },
+                                suggestedMin: 0,
+                                suggestedMax: 10
+                            }
+                        }
+                    }
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadWindChart();
+        });
+    </script>
+</body>
+</html>

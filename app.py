@@ -1,7 +1,7 @@
 from urllib import request
 
 import requests
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, render_template
 
 app = Flask(__name__)
 
@@ -11,9 +11,7 @@ def hello_world():
 
 # Déposez votre code à partir d'ici :
 
-@app.route("/contact")
-def MaPremiereAPI():
-    return "<h2>Ma page de contact</h2>"
+
 
 
 @app.get("/paris")
@@ -34,9 +32,36 @@ def api_paris():
     return jsonify(result)
 
 
+@app.route("/rapport")
+def mongraphique():
+    return render_template("graphique.html")
 
 
-# Ne rien mettre après ce commentaire
+
+@app.route("/contact")
+def contact():
+    return render_template("contact.html")
+
+@app.get("/atelier1")
+def api_atelier():
+    url = "https://api.open-meteo.com/v1/forecast?latitude=43.2965&longitude=5.3698&hourly=windspeed_10m"
+    response = requests.get(url)
+    data = response.json()
+
+    times = data.get("hourly", {}).get("time", [])
+    windspeeds = data.get("hourly", {}).get("windspeed_10m", [])
+
+    n = min(len(times), len(windspeeds))
+    result = [
+        {"datetime": times[i], "windspeed": windspeeds[i]}
+        for i in range(n)
+    ]
+
+    return jsonify(result)
+
+@app.route("/atelier")
+def atelier():
+    return render_template("atelier.html")
     
 if __name__ == "__main__":
   app.run(host="0.0.0.0", port=5000, debug=True)
